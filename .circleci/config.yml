@@ -6,17 +6,54 @@ orbs:
   aws-cli: circleci/aws-cli@3.1.1
   # different jobs are calles later in the workflows sections
 jobs:
-  # API Build and Deploy
-  api-build-deploy:
+  build:
     docker:
       # the base image can run most needed actions with orbs
-      - image: "cimg/base:stable"
+      - image: "cimg/node:14.15"
     steps:
-      - checkout
+      # install node and checkout code
       - node/install:
-          node-version: "14.15.1"
-      - aws-cli/install
+          node-version: "14.15"
+      - checkout
+      # Use root level package.json to install dependencies in the frontend app
+      - run:
+          name: Install Front-End Dependencies
+          command: |
+            npm run frontend:install
+      # TODO: Install dependencies in the the backend API
+      - run:
+          name: Install API Dependencies
+          command: |
+            npm run api:install
+            echo "TODO: Install dependencies in the the backend API  "
+      # TODO: Lint the frontend
+      - run:
+          name: Front-End Lint
+          command: |
+            echo "TODO: Lint the frontend"
+      # TODO: Build the frontend app
+      - run:
+          name: Front-End Build
+          command: |
+            npm run frontend:build
+            echo "TODO: Build the frontend app"
+      # TODO: Build the backend API
+      - run:
+          name: API Build
+          command: |
+            npm run api:build
+            echo "TODO: Build the backend API"
+  # deploy step will run only after manual approval
+  deploy:
+    docker:
+      - image: "cimg/base:stable"
+      # more setup needed for aws, node, elastic beanstalk
+    steps:
+      - node/install:
+          node-version: "14.15"
       - eb/setup
+      - aws-cli/setup
+      - checkout
       # Installing deployment dependencies
       - run:
           name: Installing deployment dependencies
@@ -25,61 +62,26 @@ jobs:
             sudo apt-get -y -qq update
             sudo apt-get install python3-pip python3-dev build-essential
             sudo pip3 install awsebcli
-      # install dependencies
       - run:
-          name: Install API Dependencies
+          name: Deploy App
+          # TODO: Install, build, deploy in both apps
           command: |
-            cd udagram && npm run api:install
-      # Build
-      - run:
-          name: API Build
-          command: |
-            cd udagram && npm run api:build
-      # Deploy
-      - run:
-          name: Deploy API
-          command: |
-            cd udagram && npm run api:deploy
-  # Frontend Build and Deploy
-  frontend-build-deploy:
-    docker:
-      # the base image can run most needed actions with orbs
-      - image: "cimg/base:stable"
-    steps:
-      - checkout
-      - node/install:
-          node-version: "14.15.1"
-      - aws-cli/install
-      # install dependencies
-      - run:
-          name: Angular CLI Dependencies
-          command: |
-            npm i -g @angular/cli
-      - run:
-          name: Install Frontend Dependencies
-          command: |
-            cd udagram && npm run frontend:install
-      # Build
-      - run:
-          name: Frontend Build
-          command: |
-            cd udagram && npm run frontend:build
-      # Deploy
-      - run:
-          name: Deploy Frontend
-          command: |
-            cd udagram && npm run frontend:deploy
-# Workflow only runs main branch. API must complete before Frontend
+            npm run api:deploy
+            npm run frontend:deploy
+            echo "# TODO: Install, build, deploy in both apps"
+
 workflows:
   udagram:
     jobs:
-      - frontend-build-deploy:
+      - build
+      - hold:
+          filters:
+            branches:
+              only:
+                - main
+          type: approval
           requires:
-            - api-build-deploy
-          filters: # Only main branch
-            branches:
-              only: /^main/
-      - api-build-deploy:
-          filters: # Only main branch
-            branches:
-              only: /^main/
+            - build
+      - deploy:
+          requires:
+            - hold
