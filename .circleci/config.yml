@@ -41,6 +41,7 @@ jobs:
       - checkout
       - node/install:
           node-version: "14.15.1"
+      - npm cache clear --force
       - aws-cli/install
       # install dependencies
       - run:
