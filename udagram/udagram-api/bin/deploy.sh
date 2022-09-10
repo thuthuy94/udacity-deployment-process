@@ -1,6 +1,4 @@
-echo 'show key connect'
-echo $AWS_SECRET_ACCESS_KEY
-echo $AWS_ACCESS_KEY_ID
+eb init --region us-east-1 --platform node.js udagram-api
 eb setenv AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID \
 AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY \
 AWS_REGION=$AWS_DEFAULT_REGION \
