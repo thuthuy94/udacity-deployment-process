@@ -6,80 +6,72 @@ orbs:
   aws-cli: circleci/aws-cli@3.1.1
   # different jobs are calles later in the workflows sections
 jobs:
-  build:
+  # API Build and Deploy
+  api-build-deploy:
     docker:
       # the base image can run most needed actions with orbs
-      - image: "cimg/node:14.15"
+      - image: "cimg/base:stable"
     steps:
-      # install node and checkout code
-      - node/install:
-          node-version: "14.15"
       - checkout
-      # Use root level package.json to install dependencies in the frontend app
-      - run:
-          name: Install Front-End Dependencies
-          command: |
-            echo "NODE --version" 
-            echo $(node --version)
-            echo "NPM --version" 
-            echo $(npm --version)
-            npm run frontend:install
-      # TODO: Install dependencies in the the backend API
+      - node/install:
+          node-version: "14.15.1"
+      - aws-cli/install
+      - eb/setup
+      # install dependencies
       - run:
           name: Install API Dependencies
           command: |
-            npm run api:install
-            echo "TODO: Install dependencies in the the backend API"
-      # TODO: Lint the frontend
-      - run:
-          name: Front-End Lint
-          command: |
-            npm run frontend:lint
-            echo "TODO: Lint the frontend"
-      # TODO: Build the frontend app
-      - run:
-          name: Front-End Build
-          command: |
-            npm run frontend:build
-            echo "TODO: Build the frontend app"
-      # TODO: Build the backend API
+            cd udagram && npm run api:install
+      # Build
       - run:
           name: API Build
           command: |
-            npm run api:build
-            echo "TODO: Build the backend API"
-  # deploy step will run only after manual approval
-  deploy:
+            cd udagram && npm run api:build
+      # Deploy
+      - run:
+          name: Deploy API
+          command: |
+            cd udagram
+  # Frontend Build and Deploy
+  frontend-build-deploy:
     docker:
+      # the base image can run most needed actions with orbs
       - image: "cimg/base:stable"
-      # more setup needed for aws, node, elastic beanstalk
     steps:
       - checkout
       - node/install:
-          node-version: "14.15"
-      - aws-cli/setup
+          node-version: "14.15.1"
       - aws-cli/install
-      - eb/setup
+      # install dependencies
       - run:
-          name: Deploy App
-          # TODO: Install, build, deploy in both apps
+          name: Angular CLI Dependencies
           command: |
-            npm run api:deploy
-            npm run frontend:deploy
-            echo "# TODO: Install, build, deploy in both apps"
-
+            npm i -g @angular/cli
+      - run:
+          name: Install Frontend Dependencies
+          command: |
+            cd udagram && npm run frontend:install
+      # Build
+      - run:
+          name: Frontend Build
+          command: |
+            cd udagram && npm run frontend:build
+      # Deploy
+      - run:
+          name: Deploy Frontend
+          command: |
+            cd udagram && npm run frontend:deploy
+# Workflow only runs main branch. API must complete before Frontend
 workflows:
   udagram:
     jobs:
-      - build
-      - hold:
-          filters:
+      - frontend-build-deploy:
+          requires:
+            - api-build-deploy
+          filters: # Only main branch
             branches:
-              only:
-                - main
-          type: approval
-          requires:
-            - build
-      - deploy:
-          requires:
-            - hold
+              only: /^main/
+      - api-build-deploy:
+          filters: # Only main branch
+            branches:
+              only: /^main/
