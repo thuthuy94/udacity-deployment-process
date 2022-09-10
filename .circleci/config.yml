@@ -13,13 +13,18 @@ jobs:
       - image: "cimg/base:stable"
     steps:
       - checkout
-      - sudo apt-get -y -qq update
-      - sudo apt-get install python3-pip python3-dev build-essential
-      - sudo pip3 install awsebcli
       - node/install:
           node-version: "14.15.1"
       - aws-cli/install
       - eb/setup
+      # Installing deployment dependencies
+      - run:
+          name: Installing deployment dependencies
+          working_directory: /
+          command: |
+            sudo apt-get -y -qq update
+            sudo apt-get install python3-pip python3-dev build-essential
+            sudo pip3 install awsebcli
       # install dependencies
       - run:
           name: Install API Dependencies
